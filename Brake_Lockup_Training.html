@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Handling E-Bike Brake Lock-Up Reports | TruVolt Brands</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --orange: #FF6600;
+    --blue: #1946BA;
+    --aqua: #00B2CE;
+    --green: #C3CF21;
+    --bg: #F5F5F5;
+    --white: #FFFFFF;
+    --text: #222222;
+    --sidebar-bg: #F0F0F0;
+    --border: #E0E0E0;
+    --sidebar-w: 270px;
+  }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── TOP BAR ── */
+  #topbar {
+    background: var(--white);
+    border-bottom: 3px solid var(--orange);
+    padding: 0 20px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  #topbar .brand {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--blue);
+    letter-spacing: -0.3px;
+  }
+  #topbar .brand span { color: var(--orange); }
+  #topbar .title {
+    font-size: 13px;
+    color: #666;
+    border-left: 1px solid var(--border);
+    padding-left: 14px;
+    font-weight: 500;
+  }
+
+  /* ── LAYOUT ── */
+  #main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: var(--sidebar-w);
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  #sidebar-header {
+    background: var(--blue);
+    color: var(--white);
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+  #chapter-list {
+    overflow-y: auto;
+    flex: 1;
+  }
+  .ch-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  .ch-item:hover { background: #e4e4e4; }
+  .ch-item.active {
+    background: var(--white);
+    border-left: 4px solid var(--orange);
+    padding-left: 10px;
+  }
+  .ch-num {
+    background: var(--blue);
+    color: var(--white);
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .ch-item.active .ch-num { background: var(--orange); }
+  .ch-item.done .ch-num { background: var(--green); color: #333; }
+  .ch-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.35;
+  }
+  .ch-item.active .ch-label { color: var(--orange); }
+
+  /* ── CONTENT ── */
+  #content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── SLIDE AREA ── */
+  #slide-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 32px;
+    background: var(--bg);
+  }
+
+  .slide-card {
+    background: var(--white);
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    overflow: hidden;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  .slide-header {
+    background: var(--blue);
+    color: var(--white);
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .slide-header .ch-badge {
+    background: var(--orange);
+    color: var(--white);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+  .slide-header h2 {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+
+  .slide-body {
+    padding: 26px 28px 28px;
+  }
+
+  /* content blocks */
+  .info-block {
+    background: var(--white);
+    border-left: 4px solid var(--blue);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .info-block.orange { border-color: var(--orange); }
+  .info-block.aqua   { border-color: var(--aqua); }
+  .info-block.green  { border-color: var(--green); }
+
+  .info-block h3 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--blue);
+    margin-bottom: 8px;
+  }
+  .info-block.orange h3 { color: var(--orange); }
+  .info-block.aqua   h3 { color: var(--aqua); }
+  .info-block.green  h3 { color: #7a8500; }
+
+  .info-block ul {
+    list-style: none;
+    padding: 0;
+  }
+  .info-block ul li {
+    font-size: 14px;
+    color: var(--text);
+    padding: 5px 0 5px 18px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .info-block ul li::before {
+    content: '▸';
+    color: var(--orange);
+    position: absolute;
+    left: 0;
+    font-size: 12px;
+    top: 6px;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .callout {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .callout.blue-bg   { background: #EBF0FA; border-left: 4px solid var(--blue); }
+  .callout.aqua-bg   { background: #E5F7FA; border-left: 4px solid var(--aqua); }
+  .callout.orange-bg { background: #FFF0E6; border-left: 4px solid var(--orange); }
+  .callout.green-bg  { background: #F5F8DA; border-left: 4px solid var(--green); }
+  .callout.red-bg    { background: #FEF0F0; border-left: 4px solid #D32F2F; }
+
+  .callout strong { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; color: #555; }
+
+  .flow-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+  .step-num {
+    background: var(--orange);
+    color: var(--white);
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .step-content h4 { font-size: 14px; font-weight: 700; margin-bottom: 3px; color: var(--blue); }
+  .step-content p  { font-size: 13px; color: #444; line-height: 1.5; }
+
+  .do-dont {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .do-box, .dont-box {
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .do-box   { background: #F5F8DA; border: 1px solid var(--green); }
+  .dont-box { background: #FEF0F0; border: 1px solid #D32F2F; }
+  .do-box   .box-label { color: #5a6200; font-weight: 700; font-size: 12px; text-transform: uppercase; margin-bottom: 8px; }
+  .dont-box .box-label { color: #b71c1c; font-weight: 700; font-size: 12px; text-transform: uppercase; margin-bottom: 8px; }
+  .do-box ul li::before   { color: var(--green) !important; }
+  .dont-box ul li::before { color: #D32F2F !important; }
+
+  .scenario-visual {
+    background: linear-gradient(135deg, #EBF0FA 0%, #F5F5F5 100%);
+    border: 1px solid var(--blue);
+    border-radius: 10px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .scenario-visual .icon { font-size: 42px; margin-bottom: 10px; display: block; }
+  .scenario-visual h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 6px; }
+  .scenario-visual p  { font-size: 13px; color: #444; line-height: 1.55; max-width: 480px; margin: 0 auto; }
+
+  .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .pill {
+    background: var(--blue);
+    color: var(--white);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .pill.orange { background: var(--orange); }
+  .pill.aqua   { background: var(--aqua); }
+  .pill.green  { background: #7a8500; }
+
+  .escalation-card {
+    border: 2px solid var(--orange);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .escalation-card .esc-head {
+    background: var(--orange);
+    color: var(--white);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 7px 14px;
+    letter-spacing: 0.5px;
+  }
+  .escalation-card .esc-body {
+    padding: 12px 14px;
+    font-size: 13.5px;
+    color: var(--text);
+    line-height: 1.55;
+  }
+
+  .quiz-cta {
+    background: linear-gradient(135deg, #1946BA 0%, #00B2CE 100%);
+    border-radius: 10px;
+    padding: 24px 28px;
+    color: var(--white);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .quiz-cta .q-icon { font-size: 40px; margin-bottom: 10px; }
+  .quiz-cta h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .quiz-cta p  { font-size: 14px; opacity: 0.92; line-height: 1.6; }
+
+  /* ── CONTROLS ── */
+  #controls {
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    padding: 10px 20px;
+    flex-shrink: 0;
+  }
+  #progress-bar-wrap {
+    width: 100%;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  #progress-bar {
+    height: 100%;
+    background: linear-gradient(to right, var(--blue), var(--orange));
+    border-radius: 3px;
+    transition: width 0.3s;
+    width: 0%;
+  }
+  #ctrl-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .ctrl-btn {
+    border: none;
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: opacity 0.15s;
+  }
+  .ctrl-btn:hover { opacity: 0.85; }
+  #btn-play  { background: var(--orange); color: var(--white); }
+  #btn-prev  { background: var(--border); color: var(--text); }
+  #btn-next  { background: var(--blue);   color: var(--white); }
+  #btn-caption { background: var(--border); color: var(--text); font-size: 12px; }
+
+  .speed-select {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--white);
+    cursor: pointer;
+  }
+
+
+  #chapter-indicator {
+    margin-left: auto;
+    font-size: 12px;
+    color: #888;
+    font-weight: 600;
+  }
+
+  #caption-box {
+    display: none;
+    background: #111;
+    color: #fff;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-top: 8px;
+    min-height: 38px;
+  }
+  #caption-box.visible { display: block; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="brand">TruVolt <span>Brands</span></div>
+  <div class="title">Handling E-Bike Brake Lock-Up Reports &nbsp;|&nbsp; Call Center Training</div>
+</div>
+
+<div id="main">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div id="sidebar-header">Course Chapters</div>
+    <div id="chapter-list"></div>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content">
+    <div id="slide-area"></div>
+
+    <!-- CONTROLS -->
+    <div id="controls">
+      <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+      <div id="ctrl-row">
+        <button class="ctrl-btn" id="btn-prev">◀ Prev</button>
+        <button class="ctrl-btn" id="btn-play">▶ Play</button>
+        <button class="ctrl-btn" id="btn-next">Next ▶</button>
+        <button class="ctrl-btn" id="btn-caption">CC</button>
+        <select class="speed-select" id="speed-select">
+          <option value="0.8">0.8×</option>
+          <option value="1" selected>1×</option>
+          <option value="1.2">1.2×</option>
+          <option value="1.5">1.5×</option>
+        </select>
+        <span id="chapter-indicator">Chapter 1 of 10</span>
+      </div>
+      <div id="caption-box"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+//  CHAPTERS DATA
+// ─────────────────────────────────────────────────────────────
+const chapters = [
+
+  // 1. WELCOME
+  {
+    title: "Welcome & Purpose",
+    narration: `Welcome to Brake Lock-Up Reporting — a training built specifically for you as a call center agent. Whether you've taken a few hundred calls or a few thousand, brake-related complaints are among the trickier ones to navigate. The customer is often upset, the language they use can be vague, and the underlying cause isn't always what it sounds like. This training will help you confidently identify what's really going on, ask the right questions, and handle these calls with both accuracy and empathy. By the end, you'll understand how the brake system actually works, recognize the most common scenarios that get reported as lock-ups, and know exactly when to escalate. Let's get started.`,
+    render: () => `
+      <div class="slide-header">
+        <span class="ch-badge">Chapter 1</span>
+        <h2>Welcome &amp; Purpose</h2>
+      </div>
+      <div class="slide-body">
+        <div class="callout blue-bg">
+          <strong>About This Training</strong>
+          This course will help you correctly interpret brake 'lock-up' complaints and follow the right intake process — every time.
+        </div>
+        <div class="info-block">
+          <h3>What You'll Be Able to Do</h3>
+          <ul>
+            <li>Understand how e-bike mechanical brake systems actually work</li>
+            <li>Recognize the common riding scenarios that get reported as lock-ups</li>
+            <li>Use a structured discovery script to gather the right facts</li>
+            <li>Know exactly when a case needs to be escalated for engineering review</li>
+          </ul>
+        </div>
+        <div class="callout orange-bg">
+          <strong>Why This Matters</strong>
+          Brake reports carry real stakes — for the customer's safety, for your team's accuracy, and for the brand's reputation. Getting this right makes a difference.
+        </div>
+      </div>`
+  },
+
+  // 2. WHAT CUSTOMERS MEAN
+  {
+    title: "What 'Lock-Up' Really Means",
+    narration: `Here's something important to keep in mind from the very start: when a customer says their brakes locked up, they are almost always describing a feeling — not confirming a mechanical failure. The phrase "lock-up" gets used to describe a sudden stop, a loss of control, a lurch forward, or sometimes just a really abrupt deceleration that startled them. It does not automatically mean there's something broken on the bike. Your job at the start of every call is to listen past the label and understand what the rider actually experienced. A customer saying "my brakes locked up" is a starting point, not a diagnosis. Keep that mindset as you go through the discovery process.`,
+    render: () => `
+      <div class="slide-header">
+        <span class="ch-badge">Chapter 2</span>
+        <h2>What 'Lock-Up' Really Means</h2>
+      </div>
+      <div class="slide-body">
+        <div class="callout aqua-bg">
+          <strong>Key Insight</strong>
+          Customers describe the <em>sensation</em> they experienced — not a confirmed mechanical condition. "Lock-up" is a starting point, not a diagnosis.
+        </div>
+        <div class="info-block aqua">
+          <h3>What Customers May Be Describing</h3>
+          <ul>
+            <li>A sudden, jarring stop that felt uncontrolled</li>
+            <li>Loss of balance or control during braking</li>
+            <li>Going over the handlebars or nearly doing so</li>
+            <li>A wheel that stopped spinning unexpectedly</li>
+            <li>General fear or alarm from a braking event</li>
+          </ul>
+        </div>
+        <div class="callout orange-bg">
+          <strong>Your Role</strong>
+          Listen past the label. Understand what actually happened before drawing any conclusions about the cause.
+        </div>
+      </div>`
+  },
+
+  // 3. BRAKE SYSTEM BASICS
+  {
+    title: "Mechanical Brake System Basics",
+    narration: `To handle these calls well, you need a solid mental model of how the brake system actually works — and just as importantly, what it can't do. E-bike mechanical disc brakes require direct input from the rider. The rider squeezes the lever, that cable tension pulls the brake caliper, and the caliper clamps down on the rotor to slow the wheel. There is no automatic engagement. The brakes cannot apply themselves. Now here's the part that surprises some people: the electric motor in an e-bike is a forward-assist system only. It helps the rider go — it does not apply the brakes. The motor cannot lock the wheels. So if a customer tells you the bike's motor caused the wheel to lock, that's not mechanically possible. The motor and the brake system are completely separate. Keeping these two facts clear will help you guide the conversation in the right direction.`,
+    render: () => `
+      <div class="slide-header">
+        <span class="ch-badge">Chapter 3</span>
+        <h2>Mechanical Brake System Basics</h2>
+      </div>
+      <div class="slide-body">
+        <div class="two-col">
+          <div class="info-block">
+            <h3>Mechanical Disc Brakes</h3>
+            <ul>
+              <li>Require direct rider lever input to engage</li>
+              <li>Cannot apply braking force without input</li>
+              <li>Do not auto-engage under any condition</li>
+              <li>Cable pulls caliper → clamps rotor → slows wheel</li>
+            </ul>
+          </div>
+          <div class="info-block orange">
+            <h3>Electric Motor System</h3>
+            <ul>
+              <li>Provides forward pedal-assist only</li>
+              <li>Has no connection to the brake system</li>
+              <li>Cannot apply braking force</li>
+              <li>Cannot cause wheels to lock — mechanically impossible</li>
+            </ul>
+          </div>
+        </div>
+        <div class="callout green-bg">
+          <strong>Bottom Line</strong>
+          Brakes and the electric motor are completely separate systems. If a customer believes the motor caused a lock-up, that is a misconception to gently address during the call.
+        </div>
+      </div>`
+  },
+
+  // 4. BICYCLE PHYSICS
+  {
+    title: "Bicycle Physics During Hard Braking",
+    narration: `Let's talk physics — because understanding what happens to a bike during sudden braking will help you recognize the most common call type you'll receive. When a rider applies the front brake hard, the bike decelerates rapidly. That rapid deceleration causes the rider's weight — and the bike's weight — to shift forward. As weight transfers to the front wheel, the rear wheel becomes light. If the deceleration is sharp enough, the rear wheel will actually lift off the ground. This is called a nose-over or endo. From the rider's perspective, it can feel like the bike suddenly stopped, the front locked up, or they were "thrown" over the handlebars. In reality, physics did exactly what physics does. Understanding this chain of events — front brake applied, deceleration, weight shift, rear lift — is the foundation for recognizing the most common scenario you'll encounter.`,
+    render: () => `
+      <div class="slide-header">
+        <span class="ch-badge">Chapter 4</span>
+        <h2>Bicycle Physics During Hard Braking</h2>
+      </div>
+      <div class="slide-body">
+        <div class="callout blue-bg">
+          <strong>The Nose-Over Effect</strong>
+          Hard front braking causes weight to transfer forward — potentially lifting the rear wheel and pitching the rider over the handlebars.
+        </div>
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h4>Front brake applied</h4>
+              <p>Rider squeezes the front lever — braking force engages the front rotor.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h4>Rapid deceleration</h4>
+              <p>The bike slows quickly — momentum continues to carry rider and bike mass forward.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h4>Weight shifts forward</h4>
+              <p>Inertia transfers weight toward the front contact point — rear becomes light.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">4</div>
+            <div class="step-content">
+              <h4>Rear wheel may lift</h4>
+              <p>In extreme cases the rear wheel leaves the ground — the rider experiences a nose-over or pitches forward.</p>
+            </div>
+          </div>
+        </div>
+      </div>`
+  },
+
+  // 5. COMMON SCENARIOS
+  {
+    title: "Common Reported Scenarios",
+    narration: `Now that you understand the physics, let's walk through the three scenarios that most frequently get reported as brake lock-ups. The first is sudden front braking — the rider grabs the front brake hard, typically in a panic stop situation, and the deceleration causes them to pitch forward. They describe it as a lock-up because the stop was so abrupt. The second scenario is obstacles. The front wheel hits a curb, a pothole, or another object. The wheel stops abruptly, but the rider's momentum continues forward. They feel like the bike "locked up" when in reality the wheel stopped because of a physical obstruction. The third scenario is soft terrain. Riding on sand, gravel, mud, or wet grass can cause a wheel to lose traction and decelerate quickly — creating the same sensation of sudden stoppage without any mechanical engagement. In all three cases, the customer's description is accurate from their perspective, but the root cause is not a mechanical failure.`,
+    render: () => `
+      <div class="slide-header">
+        <span class="ch-badge">Chapter 5</span>
+        <h2>Common Reported Scenarios</h2>
+      </div>
+      <div class="slide-body">
+        <div class="scenario-visual">
+          <span class="icon">🚲</span>
+          <h3>Sudden Front Braking</h3>
+          <p>Rider applies front brake hard — rapid deceleration creates the sensation of locking. The bike is functioning correctly; weight transfer causes the forward pitch.</p>
+        </div>
+        <div class="two-col">
+          <div class="scenario-visual" style="margin-bottom:0;">
+            <span class="icon">🪨</span>
+            <h3>Obstacle Impact</h3>
+            <p>Front wheel contacts a curb, pothole, or debris. Wheel stops abruptly; rider's momentum continues forward, creating a perceived lock-up.</p>
+          </div>
+          <div class="scenario-visual" style="margin-bottom:0;">
+            <span class="icon">🏖️</span>
+            <h3>Soft / Slippery Terrain</h3>
+            <p>Sand, gravel, mud, or wet grass causes rapid wheel deceleration through traction loss — same end sensation, no mechanical involvement.</p>
+          </div>
+        </div>
+      </div>`
+  },
+
+  // 6. CONTRIBUTING FACTORS
+  {
+    title: "Other Contributing Factors",
+    narration: `Beyond the three main scenarios, there are a few additional factors that increase the risk of a nose-over — and you'll want to listen for these during your discovery conversation. A heavy load carried high on the bike — like panniers packed full, or cargo mounted on a rack — raises the center of gravity and makes the bike much more susceptible to tipping forward during hard stops. Riders who are standing on the pedals rather than seated also have a higher center of mass, which amplifies the effect. And riders with a forward-leaning posture are already weight-shifted toward the front, so any hard braking puts them at greater risk. If you hear any of these details while gathering facts, note them — they provide important context for understanding what happened and can help guide the conversation toward a non-mechanical explanation.`,
+    render: () => `
+      <div class="slide-header">
+        <span class="ch-badge">Chapter 6</span>
+        <h2>Other Contributing Factors</h2>
+      </div>
+      <div class="slide-body">
+        <div class="callout aqua-bg">
+          <strong>Why These Matter</strong>
+          These factors increase the center of gravity and amplify nose-over risk during hard braking. Listen for them during discovery.
+        </div>
+        <div class="info-block">
+          <h3>Listen for These Details</h3>
+          <ul>
+            <li><strong>Heavy load carried high</strong> — full panniers, cargo on rear rack, bulky bags — raises center of gravity significantly</li>
+            <li><strong>Standing on the pedals</strong> — elevates the rider's body mass, reducing stability during sudden stops</li>
+            <li><strong>Forward-leaning posture</strong> — rider already weight-shifted toward the front wheel before braking occurs</li>
+            <li><strong>Downhill riding</strong> — adds momentum and makes weight transfer even more pronounced</li>
+          </ul>
+        </div>
+        <div class="callout orange-bg">
+          <strong>What to Do With This Info</strong>
+          These details help contextualize a dynamic incident vs. a mechanical failure. Document them in your case notes.
+        </div>
+      </div>`
+  },
+
+  // 7. DISCOVERY FLOW & QUESTIONS
+  {
+    title: "Discovery Flow & Key Questions",
+    narration: `Let's get into the actual call handling process. When a customer reports a brake lock-up, your goal in the first part of the call is to build a clear picture of exactly what happened — before drawing any conclusions. Start by acknowledging what the customer experienced, then move into structured fact-gathering. You want to understand the terrain they were riding on, what their speed was, whether they applied the front or rear brake, whether they were carrying any cargo, and what their posture was. Ask open-ended questions: "Can you walk me through what happened right before the bike stopped?" "What surface were you riding on?" "Were you going uphill, downhill, or on flat ground?" The goal is to determine whether the incident is best explained by dynamics — physics, terrain, rider position — or whether there are signs of an actual mechanical issue. Keeping the questions neutral and curious — not accusatory — is critical. We'll talk more about that in the next chapter.`,
+    render: () => `
+      <div class="slide-header">
+        <span class="ch-badge">Chapter 7</span>
+        <h2>Discovery Flow &amp; Key Questions</h2>
+      </div>
+      <div class="slide-body">
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h4>Acknowledge &amp; Open</h4>
+              <p>"I'm sorry to hear that happened — let's figure out exactly what's going on." Set a collaborative, non-judgmental tone immediately.</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h4>Establish the Riding Context</h4>
+              <p>Surface type? Uphill / downhill / flat? Estimated speed? Time of day / weather?</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h4>Understand the Braking Action</h4>
+              <p>Which brake did they apply — front, rear, or both? Was it gradual or sudden? Was anything in their path?</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">4</div>
+            <div class="step-content">
+              <h4>Rider Position &amp; Load</h4>
+              <p>Were they seated or standing? Carrying cargo? Leaning forward?</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">5</div>
+            <div class="step-content">
+              <h4>Post-Incident Bike Check</h4>
+              <p>Can the wheel spin freely when stationary? Do levers feel normal? Has the issue repeated?</p>
+            </div>
+          </div>
+        </div>
+      </div>`
+  },
+
+  // 8. VERIFICATION PROCESS
+  {
+    title: "Verification Process",
+    narration: `Once you've gathered the facts, there are cases where you'll want to verify the physical condition of the bike before deciding on next steps. The most effective tool here is a short video. Ask the customer to set the bike on its kickstand or lean it against a wall, then spin each wheel by hand — front and rear — and record a short video. What you're looking for is whether the wheel spins freely or if there's drag, binding, or rubbing. A wheel that spins freely and stops gradually with no rubbing is behaving normally. A wheel that won't spin, binds up, or makes contact with the brake pad without the lever being engaged is a potential mechanical issue. You can also ask if the brake lever feels sticky, spongy, or if it doesn't spring back properly when released. These physical checks help separate a dynamic incident from a genuine hardware concern — and give you the information you need to make a smart escalation decision.`,
+    render: () => `
+      <div class="slide-header">
+        <span class="ch-badge">Chapter 8</span>
+        <h2>Verification Process</h2>
+      </div>
+      <div class="slide-body">
+        <div class="callout aqua-bg">
+          <strong>When to Request a Video</strong>
+          When the facts are unclear or a mechanical issue cannot be ruled out, ask the customer to record a short video of the bike.
+        </div>
+        <div class="info-block aqua">
+          <h3>Video Check Instructions (for Customer)</h3>
+          <ul>
+            <li>Place the bike on its kickstand or lean against a wall</li>
+            <li>Spin the front wheel — does it spin freely and slow down gradually?</li>
+            <li>Spin the rear wheel — same check</li>
+            <li>Squeeze and release each brake lever — does it spring back cleanly?</li>
+            <li>Record the whole sequence and send it in</li>
+          </ul>
+        </div>
+        <div class="two-col">
+          <div class="callout green-bg" style="margin-bottom:0;">
+            <strong>✅ Normal Signs</strong>
+            Wheel spins freely, slows gradually, no pad contact, lever returns fully
+          </div>
+          <div class="callout red-bg" style="margin-bottom:0;">
+            <strong>🚩 Escalation Signs</strong>
+            Wheel binds or won't spin, pad drags without lever input, lever is sticky or doesn't return
+          </div>
+        </div>
+      </div>`
+  },
+
+  // 9. COMMUNICATION GUIDANCE
+  {
+    title: "Customer Communication Guidance",
+    narration: `How you talk to the customer during these calls matters enormously. Even when the evidence strongly suggests the incident was caused by dynamic factors — braking too hard, terrain, posture — you must never make the customer feel blamed or criticized. Phrases like "braking too hard," "improper braking," or "slamming the brakes" are off-limits. Even if they're technically accurate, they put the customer on the defensive and shut down the conversation. Instead, use neutral, observation-based language. Say things like "it sounds like the deceleration was very sudden" or "it's possible the terrain played a role in how the bike responded." Focus on what the bike did, not what the rider did wrong. This approach keeps the customer engaged, maintains trust, and opens the door to a productive resolution — whether that's educational guidance, a video check, or an escalation.`,
+    render: () => `
+      <div class="slide-header">
+        <span class="ch-badge">Chapter 9</span>
+        <h2>Customer Communication Guidance</h2>
+      </div>
+      <div class="slide-body">
+        <div class="do-dont">
+          <div class="do-box">
+            <div class="box-label">✅ Use — Neutral &amp; Observational</div>
+            <ul class="info-block" style="border:none;padding:0;box-shadow:none;">
+              <li>"It sounds like the deceleration was very sudden"</li>
+              <li>"The terrain may have played a role in how the bike responded"</li>
+              <li>"Let's take a look at what the bike is doing right now"</li>
+              <li>"That sounds like a really startling experience"</li>
+            </ul>
+          </div>
+          <div class="dont-box">
+            <div class="box-label">🚫 Avoid — Blaming Language</div>
+            <ul class="info-block" style="border:none;padding:0;box-shadow:none;">
+              <li>"Braking too hard"</li>
+              <li>"Improper braking technique"</li>
+              <li>"Slamming the brakes"</li>
+              <li>"You shouldn't have…"</li>
+            </ul>
+          </div>
+        </div>
+        <div class="callout blue-bg">
+          <strong>The Guiding Principle</strong>
+          Focus on what the bike did — not what the rider did wrong. Neutral language keeps the customer engaged and the conversation productive.
+        </div>
+      </div>`
+  },
+
+  // 10. ESCALATION & WRAP-UP
+  {
+    title: "Escalation Criteria &amp; Wrap-Up",
+    narration: `Most brake lock-up reports will be resolved through discovery and education — the customer experienced a dynamic event, and you help them understand what happened. But some cases do need to go further. Escalate for engineering review when: the wheel cannot spin freely when the bike is stationary and no lever is pressed. When the brake pad is visibly contacting the rotor without any input. When the brake lever doesn't return to its resting position after being released. When the customer reports the issue has repeated across multiple separate rides. Or when there's visible damage — a bent rotor, damaged caliper, or frayed cable. In any of these situations, don't try to diagnose it yourself — route the case to your engineering escalation queue with your discovery notes and any video the customer has sent. Finally, a reminder: at the end of this training, your instructor will provide additional instructions for the knowledge check. Make sure to complete it when prompted. Great work getting through this material — you're now equipped to handle these calls with real confidence.`,
+    render: () => `
+      <div class="slide-header">
+        <span class="ch-badge">Chapter 10</span>
+        <h2>Escalation Criteria &amp; Wrap-Up</h2>
+      </div>
+      <div class="slide-body">
+        <div class="escalation-card">
+          <div class="esc-head">🚨 Escalate for Engineering Review When...</div>
+          <div class="esc-body">
+            <ul class="info-block" style="border:none;padding:0;box-shadow:none;margin:0;">
+              <li>Wheel cannot spin freely when stationary with no lever input</li>
+              <li>Brake pad visibly contacts rotor without any lever being pressed</li>
+              <li>Brake lever does not return to resting position after release</li>
+              <li>Customer reports the issue has repeated across multiple rides</li>
+              <li>Visible physical damage — bent rotor, damaged caliper, frayed cable</li>
+            </ul>
+          </div>
+        </div>
+        <div class="callout green-bg">
+          <strong>Key Takeaways</strong>
+          "Lock-up" = a feeling, not a diagnosis. Physics explains most incidents. Ask neutral questions. Document everything. Escalate when hardware signs are present.
+        </div>
+        <div class="quiz-cta">
+          <div class="q-icon">📋</div>
+          <h3>Knowledge Check Coming Up</h3>
+          <p>Your instructor will provide additional instructions for the knowledge check. Complete it when prompted to confirm your understanding of this material.</p>
+        </div>
+      </div>`
+  }
+
+];
+
+// ─────────────────────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────────────────────
+let current   = 0;
+let playing   = false;
+let captionOn = false;
+let utterance = null;
+let utteranceStartMs   = 0;
+let elapsedBeforePause = 0;
+
+const completedSet = new Set();
+
+// ─────────────────────────────────────────────────────────────
+//  DOM REFS
+// ─────────────────────────────────────────────────────────────
+const slideArea   = document.getElementById('slide-area');
+const chapterList = document.getElementById('chapter-list');
+const progressBar = document.getElementById('progress-bar');
+const btnPlay     = document.getElementById('btn-play');
+const btnPrev     = document.getElementById('btn-prev');
+const btnNext     = document.getElementById('btn-next');
+const btnCaption  = document.getElementById('btn-caption');
+const speedSelect = document.getElementById('speed-select');
+const captionBox  = document.getElementById('caption-box');
+const chIndic     = document.getElementById('chapter-indicator');
+
+// ─────────────────────────────────────────────────────────────
+//  VOICE LOADER — Google US English (fixed)
+// ─────────────────────────────────────────────────────────────
+let selectedVoice = null;
+
+function setGoogleUSVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return;
+  selectedVoice = voices.find(v => v.name === 'Google US English')
+               || voices.find(v => v.lang === 'en-US')
+               || voices[0];
+}
+
+setGoogleUSVoice();
+if (window.speechSynthesis.onvoiceschanged !== undefined) {
+  window.speechSynthesis.onvoiceschanged = setGoogleUSVoice;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  BUILD SIDEBAR
+// ─────────────────────────────────────────────────────────────
+function buildSidebar() {
+  chapterList.innerHTML = '';
+  chapters.forEach((ch, i) => {
+    const item = document.createElement('div');
+    item.className = 'ch-item' +
+      (i === current ? ' active' : '') +
+      (completedSet.has(i) && i !== current ? ' done' : '');
+    item.innerHTML = `<div class="ch-num">${i + 1}</div><div class="ch-label">${ch.title}</div>`;
+    item.addEventListener('click', () => { stopNarration(); goTo(i); });
+    chapterList.appendChild(item);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  RENDER SLIDE
+// ─────────────────────────────────────────────────────────────
+function renderSlide() {
+  const ch = chapters[current];
+  slideArea.innerHTML = `<div class="slide-card">${ch.render()}</div>`;
+  chIndic.textContent = `Chapter ${current + 1} of ${chapters.length}`;
+  const pct = ((current) / (chapters.length - 1)) * 100;
+  progressBar.style.width = pct + '%';
+  buildSidebar();
+  slideArea.scrollTop = 0;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  NAV
+// ─────────────────────────────────────────────────────────────
+function goTo(idx) {
+  completedSet.add(current);
+  current = Math.max(0, Math.min(chapters.length - 1, idx));
+  renderSlide();
+  if (playing) { playing = false; startNarration(); playing = true; }
+  else { btnPlay.textContent = '▶ Play'; }
+}
+
+btnPrev.addEventListener('click', () => { stopNarration(); goTo(current - 1); });
+btnNext.addEventListener('click', () => { stopNarration(); goTo(current + 1); });
+
+// ─────────────────────────────────────────────────────────────
+//  SPEECH — Chrome-safe pause/resume
+// ─────────────────────────────────────────────────────────────
+function stopNarration() {
+  window.speechSynthesis.cancel();
+  utterance = null;
+  elapsedBeforePause = 0;
+  playing = false;
+  btnPlay.textContent = '▶ Play';
+  captionBox.textContent = '';
+}
+
+function startNarration(resumeMs) {
+  window.speechSynthesis.cancel();
+  const fullText = chapters[current].narration;
+  let speakText  = fullText;
+
+  if (resumeMs && resumeMs > 0) {
+    const words      = fullText.split(' ');
+    const totalMs    = estimateDuration(fullText);
+    const ratio      = Math.min(resumeMs / totalMs, 0.95);
+    const wordIdx    = Math.max(0, Math.floor(ratio * words.length) - 2);
+    // walk back to nearest space
+    let safeIdx = wordIdx;
+    while (safeIdx > 0 && words[safeIdx - 1].slice(-1) !== ' ') safeIdx--;
+    speakText = words.slice(safeIdx).join(' ');
+  }
+
+  utterance             = new SpeechSynthesisUtterance(speakText);
+  utterance.rate        = parseFloat(speedSelect.value);
+  if (selectedVoice) utterance.voice = selectedVoice;
+  utteranceStartMs      = Date.now();
+
+  utterance.onend = () => {
+    if (!playing) return;
+    completedSet.add(current);
+    if (current < chapters.length - 1) {
+      current++;
+      renderSlide();
+      elapsedBeforePause = 0;
+      startNarration();
+    } else {
+      stopNarration();
+    }
+  };
+
+  if (captionOn) {
+    const words = speakText.split(' ');
+    const totalEstMs = estimateDuration(speakText) / parseFloat(speedSelect.value);
+    const msPerWord  = totalEstMs / words.length;
+    let wordI = 0;
+    const captionTick = setInterval(() => {
+      if (!playing || !utterance) { clearInterval(captionTick); return; }
+      const elapsed = Date.now() - utteranceStartMs;
+      wordI = Math.min(Math.floor(elapsed / msPerWord), words.length - 1);
+      const start = Math.max(0, wordI - 6);
+      const end   = Math.min(words.length, wordI + 8);
+      captionBox.innerHTML = words.slice(start, end).map((w, ii) =>
+        ii === (wordI - start) ? `<mark style="background:#FF6600;color:#fff;padding:1px 3px;border-radius:3px;">${w}</mark>` : w
+      ).join(' ');
+    }, 120);
+  }
+
+  window.speechSynthesis.speak(utterance);
+  playing = true;
+  btnPlay.textContent = '⏸ Pause';
+}
+
+function estimateDuration(text) {
+  // rough: ~130 words/min → ~460ms per word
+  return text.split(' ').length * 460;
+}
+
+btnPlay.addEventListener('click', () => {
+  if (playing) {
+    // PAUSE: record elapsed, cancel
+    const elapsed = Date.now() - utteranceStartMs;
+    elapsedBeforePause += elapsed;
+    window.speechSynthesis.cancel();
+    utterance = null;
+    playing = false;
+    btnPlay.textContent = '▶ Play';
+  } else {
+    // RESUME or START
+    startNarration(elapsedBeforePause > 0 ? elapsedBeforePause : 0);
+  }
+});
+
+speedSelect.addEventListener('change', () => {
+  if (playing) {
+    const elapsed = Date.now() - utteranceStartMs;
+    elapsedBeforePause += elapsed;
+    window.speechSynthesis.cancel();
+    utterance = null;
+    playing = false;
+    startNarration(elapsedBeforePause);
+  }
+});
+
+btnCaption.addEventListener('click', () => {
+  captionOn = !captionOn;
+  btnCaption.style.background = captionOn ? '#1946BA' : '';
+  btnCaption.style.color      = captionOn ? '#fff'    : '';
+  captionBox.classList.toggle('visible', captionOn);
+  if (!captionOn) captionBox.textContent = '';
+});
+
+// ─────────────────────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────────────────────
+renderSlide();
+</script>
+</body>
+</html>
